@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國際總動援 - 新聞資訊卡判讀系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .card-enter {
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .reveal-anim {
+            animation: fadeInDown 0.5s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stamp {
+            font-size: 3rem;
+            font-weight: 900;
+            border: 4px solid;
+            display: inline-block;
+            padding: 0.25rem 1rem;
+            text-transform: uppercase;
+            border-radius: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            transform: rotate(-5deg);
+            opacity: 0.8;
+        }
+        .stamp-true { color: #16a34a; border-color: #16a34a; }
+        .stamp-false { color: #dc2626; border-color: #dc2626; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-6 shadow-md relative overflow-hidden">
+        <div class="max-w-3xl mx-auto relative z-10 text-center">
+            <h1 class="text-3xl md:text-4xl font-black mb-2 tracking-wide"><i class="fa-solid fa-earth-americas text-blue-400 mr-2"></i>國際總動援</h1>
+            <p class="text-slate-300 font-medium tracking-widest text-sm md:text-base">新聞資訊卡判讀系統</p>
+        </div>
+        <!-- Decorative bg elements -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <i class="fa-solid fa-newspaper absolute top-2 left-10 text-6xl transform -rotate-12"></i>
+            <i class="fa-solid fa-magnifying-glass absolute bottom-2 right-10 text-6xl transform rotate-12"></i>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-3xl mx-auto p-4 md:p-6 flex flex-col gap-6">
+        
+        <!-- Search Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 border-t-4 border-slate-800">
+            <label for="searchInput" class="block text-lg font-bold mb-3 text-slate-700">🔍 請輸入新聞資訊卡編號</label>
+            <div class="flex gap-3">
+                <input type="text" id="searchInput" 
+                    class="flex-grow text-xl md:text-2xl p-4 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-bold uppercase placeholder:font-normal placeholder:text-base placeholder:text-slate-400" 
+                    placeholder="例如：S1, M2, E3..."
+                    autocomplete="off">
+                <button id="searchBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 md:px-8 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center">
+                    <i class="fa-solid fa-satellite-dish text-xl md:mr-2"></i>
+                    <span class="hidden md:inline text-lg">判讀連線</span>
+                </button>
+            </div>
+            <p id="errorMsg" class="text-red-500 font-bold mt-3 hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 找不到此編號，請確認卡片左上角的代碼（如：S1）</p>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultContainer" class="hidden">
+            <!-- Card will be injected here -->
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-200 text-slate-500 text-center py-4 text-sm font-medium">
+        &copy; 2026 國際總動援 Board Game App
+    </footer>
+
+    <!-- Database & Logic -->
+    <script>
+        // 額外補充了真實世界的新聞參考，增加桌遊教育意義
+        const cardDatabase = {
+            // ================= 社會 (Society) =================
+            "S1": {
+                id: "S1", category: "社會", icon: "fa-users", color: "rose", 
+                title: "公平貿易新承諾：服飾品牌的人道永續方案",
+                content: "某知名戶外運動品牌近期宣布僅和公平貿易認證的工廠合作，且每年會親自到工廠進行檢查，收集有關工資、工作小時、福利等資料，了解工人拿到的薪資是否足夠他們過上有品質的生活。",
+                reward: "1個「社會」行動指數",
+                isTrue: true,
+                reference: "知名戶外品牌 Patagonia 等企業長期推動公平貿易認證，親自訪視供應鏈確保勞工獲得合理「生活工資」，而非僅是法定的「最低工資」。"
+            },
+            "S2": {
+                id: "S2", category: "社會", icon: "fa-users", color: "rose",
+                title: "國際組織介入 童工權益獲得全面保護",
+                content: "某國多間成衣廠違法雇用童工，逼迫孩童超時工作且沒有給出符合基本工資的薪水。在國際組織的規範設置與嚴格監督下，此國童工的權益已完全受到保護，沒有公共安全或勞工權益的問題出現。",
+                reward: "1個「社會」行動指數",
+                isTrue: false,
+                reference: "現實中童工問題依然嚴峻，尤其在部分開發中國家的成衣供應鏈底層，國際組織雖有介入，但距離「完全保護」與「無勞工權益問題」仍有極大差距。"
+            },
+            "S3": {
+                id: "S3", category: "社會", icon: "fa-users", color: "rose",
+                title: "成衣工廠勞工示威要求調薪 引發國際關注",
+                content: "某國成衣工廠的勞工為爭取薪水調漲進行示威抗議。此舉引發國際勞工組織與服飾品牌的關注，並呼籲當地政府設置合理的基本薪資。",
+                reward: "1個「社會」行動指數",
+                isTrue: true,
+                reference: "孟加拉、柬埔寨等成衣製造大國常發生勞工大規模罷工、抗議低薪的事件，促使國際勞工組織(ILO)與各大品牌施壓當地政府調整最低工資。"
+            },
+            "S4": {
+                id: "S4", category: "社會", icon: "fa-users", color: "rose",
+                title: "慢時尚品牌製程大公開！鼓勵民眾意識消費",
+                content: "某一主打「慢時尚」的服飾品牌，將他們的合作廠商公布在網路上，清楚標示原物料來源以及加工工廠名稱；用透明化的方式來讓消費者知道自己購買的衣物符合公平貿易的原則。",
+                reward: "1個「社會」行動指數",
+                isTrue: true,
+                reference: "例如 Everlane 等慢時尚或主打「極度透明」的品牌，會公開其供應鏈、工廠名單及真實成本，讓消費者能做出有意識的消費選擇。"
+            },
+            "S5": {
+                id: "S5", category: "社會", icon: "fa-users", color: "rose",
+                title: "少數民族勞工遭迫害 知名品牌聯合抵制",
+                content: "某國政府被爆出，逼迫少數民族族群進行高度辛苦的勞力工，且竟然沒有給出相對的薪資報酬。此舉引起多個知名跨國服飾品牌聯合抵制合作。",
+                reward: "1個「社會」行動指數",
+                isTrue: true,
+                reference: "中國新疆維吾爾族強迫勞動事件，導致H&M、Nike等多家跨國知名服飾品牌因拒絕使用涉及強迫勞動的「新疆棉」而發起聯合抵制。"
+            },
+            "S6": {
+                id: "S6", category: "社會", icon: "fa-users", color: "rose",
+                title: "成衣工廠倒塌 製造大國應急措施成功保護工人安全",
+                content: "成衣製造大國境內一工廠發生倒塌意外，但所幸工廠設有周全的災難應變措施、順利協助所有工人進行避難，最後無人傷亡。",
+                reward: "1個「社會」行動指數",
+                isTrue: false,
+                reference: "2013年孟加拉發生「熱那亞大樓(Rana Plaza)倒塌事件」，造成超過1100名成衣工人死亡。該工廠完全沒有周全的應變措施，是服裝史上最嚴重的工安災難。"
+            },
+            "S7": {
+                id: "S7", category: "社會", icon: "fa-users", color: "rose",
+                title: "性騷防治漏洞！數百萬女性工作場所遭騷擾",
+                content: "某國政府沒有確實執行性騷擾防治法規，導致數百萬女性在工作場所受到不當對待且通常不敢向外求助；其中在業主家進行清潔與照顧服務的女性特別容易遭受騷擾。",
+                reward: "1個「社會」行動指數",
+                isTrue: true,
+                reference: "根據國際勞工組織(ILO)報告，職場性騷擾在成衣業非常普遍，且家事勞工因工作場所隱蔽，更容易成為性騷擾與暴力的受害者。"
+            },
+
+            // ================= 經濟 (Economy) =================
+            "M1": {
+                id: "M1", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "支持永續時尚 某國對快時尚開徵「生態稅」",
+                content: "某國為降低快時尚對本土產業及環境的衝擊，即日起禁止這些品牌宣傳產品，並且針對每一項賣出的商品收取額外費用。",
+                reward: "1個「經濟」行動指數",
+                isTrue: true,
+                reference: "法國國民議會於2024年通過打擊快時尚的法案，禁止快時尚品牌投放廣告，並計劃對每件商品徵收「生態稅」(環境附加費)以降低環境衝擊。"
+            },
+            "M2": {
+                id: "M2", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "某國推出「EcoEco」工具 評估服裝對環境影響",
+                content: "某國政府鼓勵國內紡織與服飾業者透過一線上評估工具，主動評估產品對於環境的影響，透過標示讓消費者購買永續服飾。",
+                reward: "1個「經濟」行動指數",
+                isTrue: true,
+                reference: "法國與歐盟近年積極推動服裝的「生態標籤」(如 Eco-score)，要求品牌標示產品的環境影響評估，幫助消費者辨識永續服飾。"
+            },
+            "M3": {
+                id: "M3", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "捐不完的二手衣？ 直擊衣物氾濫問題根本解方",
+                content: "學者呼籲面對二手衣物氾濫問題，最根本的解決方法要從服飾品牌的行銷策略來做改善，和消費者本身的消費習慣以及衣物使用方式沒有太大的關係。",
+                reward: "1個「經濟」行動指數",
+                isTrue: false,
+                reference: "解決衣物氾濫不僅需要品牌改變商業模式，更極度仰賴「消費者改變消費習慣（減少盲目購買）」與「延長衣物使用壽命」，兩者缺一不可。"
+            },
+            "M4": {
+                id: "M4", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "禁止二手衣出口 有望促進發展中國家經濟發展",
+                content: "近年來許多已開發國家開始禁止將廢棄的二手衣物出口到其他國家，這樣的作法可以幫助改善開發中國家的環境，且對於當地人的生計不會產生負面影響。",
+                reward: "1個「經濟」行動指數",
+                isTrue: false,
+                reference: "禁止二手衣出口會嚴重打擊開發中國家（如東非 Mitumba 市場）依賴販售、修補二手衣維生的基層商販生計，對當地底層經濟會產生巨大的負面衝擊。"
+            },
+            "M5": {
+                id: "M5", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "快時尚品牌最新網網紅行銷手法 引發網友質疑",
+                content: "某快時尚品牌邀請知名網紅前往其工廠參訪，期望對方在網路上宣傳品牌重視勞工權益、永續環保的一面。但這樣的作法反而引起網路輿論攻擊，懷疑行銷內容的真實性。",
+                reward: "1個「經濟」行動指數",
+                isTrue: true,
+                reference: "快時尚巨頭 Shein 曾於2023年邀請多位美國知名網紅參觀其位於中國的工廠，試圖洗白血汗工廠形象，卻遭網友強烈抨擊其粉飾太平、缺乏真實性。"
+            },
+            "M6": {
+                id: "M6", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "不敵二手衣進口 本土品牌發展受嚴重衝擊",
+                content: "二手衣為某國帶來就業機會，但也同時影響到本土品牌的發展。故此國總統開始要求公家機關的制服、鞋子都要在本地製造，並且交給年輕人來做，以協助本土品牌。",
+                reward: "1個「經濟」行動指數",
+                isTrue: true,
+                reference: "許多非洲國家（如盧安達、肯亞）為保護本土紡織業，曾提高二手衣進口關稅或推動「在地製造」政策（包含採購在地制服），來扶植本土產業與青年就業。"
+            },
+            "M7": {
+                id: "M7", category: "經濟", icon: "fa-coins", color: "indigo",
+                title: "舊衣出口需求減少 國內回收場推創意出路",
+                content: "近年來，舊衣出口至開發中國家的需求大量減少，造成國內許多舊衣回收場陸續倒閉，或是要另外尋找其他創意的方式來利用這些二手衣物。",
+                reward: "1個「經濟」行動指數",
+                isTrue: true,
+                reference: "隨著快時尚衣物品質下降及部分進口國限制，許多先進國家的舊衣回收商面臨利潤崩盤的困境，迫使他們轉型尋找降級回收（如做成抹布、隔音棉）或創意重製的出路。"
+            },
+
+            // ================= 環境 (Environment) =================
+            "E1": {
+                id: "E1", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "讓汙水歸零 ！政府聲明：保證對環境無害",
+                content: "全球第二大服裝製造國家的政府聲明，國內企業會妥善處理污水，排放到河流不僅對環境無害，而且成為該地區最重要的飲用水源。",
+                reward: "1個「環境」行動指數",
+                isTrue: false,
+                reference: "紡織染整業是全球最大的水污染源之一。工廠排放的廢水含有大量有毒化學物質及重金屬，對環境與當地居民的飲水安全造成極大危害，絕非「保證無害」。"
+            },
+            "E2": {
+                id: "E2", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "時裝產業每年平均用水量登全球之「冠」",
+                content: "國際環境組織公布，時裝產業對水資源的消耗佔全球第一，超過農業灌溉用水量。",
+                reward: "1個「環境」行動指數",
+                isTrue: false,
+                reference: "雖然時裝產業耗水量極大（特別是種植棉花與染整過程），但全球用水量第一的產業依然是「農業」（佔比約70%），時裝產業並非全球之冠。"
+            },
+            "E3": {
+                id: "E3", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "舊衣回收真環保? 第三世界國家淪為垃圾場",
+                content: "已開發國家產生的舊衣，最常見的處理方法為轉售給第三世界國家，但其中大部分會因為髒污、破損、尺寸不合的原因當成廢棄物，只有少數會真的被當地人二手利用。",
+                reward: "1個「環境」行動指數",
+                isTrue: true,
+                reference: "例如在迦納的坎塔曼托市場，每週接收數百萬件來自西方的二手衣，但因品質低劣，近半數最終淪為垃圾，堆積在海灘或露天掩埋場，造成嚴重環境災難。"
+            },
+            "E4": {
+                id: "E4", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "環境災難：時裝業不為人知的黑暗面",
+                content: "時裝產業直接導致了全球約10％的二氧化碳排放，比空運加海運製造的碳排放還要高。",
+                reward: "1個「環境」行動指數",
+                isTrue: true,
+                reference: "根據聯合國環境署(UNEP)統計，時尚產業的碳排放量確實佔全球總量約8-10%，且這個數字高於所有國際航班和海運碳排放量的總和。"
+            },
+            "E5": {
+                id: "E5", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "外太空都看得到的「山」：時尚產業背後的環境迫害",
+                content: "某國常年以來都是二手和滯銷快時尚衣物的集散中心，大多的衣物最後都會被丟棄在境內的沙漠，形成一座座的「衣山」。",
+                reward: "1個「環境」行動指數",
+                isTrue: true,
+                reference: "智利的阿塔卡馬沙漠(Atacama Desert)被稱為「快時尚垃圾場」，每年有數萬噸未售出或廢棄的二手衣物被非法傾倒在此，形成極為驚人的「衣山」。"
+            },
+            "E6": {
+                id: "E6", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "「棉花」成生態殺手 政府呼籲民眾支持有機產品",
+                content: "時裝產業中重要的原料「棉花」，其種植過程使用的殺蟲劑與其他有害化學品，會汙染當地水道與土壤，進一步影響整個生態系。故多國政府呼籲民眾多支持有機棉產品或購買其他永續材質衣物。",
+                reward: "1個「環境」行動指數",
+                isTrue: true,
+                reference: "傳統棉花種植佔了全球殺蟲劑使用量的16%以上，對土壤健康和水源破壞極大，因此各界呼籲轉向購買有機棉或其他低環境衝擊的環保材質。"
+            },
+            "E7": {
+                id: "E7", category: "環境", icon: "fa-leaf", color: "emerald",
+                title: "知名戶外品牌首款環境認證產品獲國際肯定",
+                content: "某知名戶外運動品牌和一百多位農民合作，成功種植了一批能減少環境負擔的棉花，之後更推出了第一個環境認證的棉花產品，獲得國際社會肯定。",
+                reward: "1個「環境」行動指數",
+                isTrue: true,
+                reference: "Patagonia 等品牌積極推動「再生有機認證 (Regenerative Organic)」，與農民合作種植能恢復土壤健康、增加碳吸收的棉花，是業界的環保先驅。"
+            }
+        };
+
+        // UI Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const resultContainer = document.getElementById('resultContainer');
+
+        // Functions
+        function handleSearch() {
+            const query = searchInput.value.trim().toUpperCase();
+            
+            if (query === "") return;
+
+            if (cardDatabase[query]) {
+                errorMsg.classList.add('hidden');
+                renderCard(cardDatabase[query]);
+            } else {
+                errorMsg.classList.remove('hidden');
+                resultContainer.classList.add('hidden');
+            }
+        }
+
+        function renderCard(data) {
+            // Setup colors based on category
+            let bgLight, bgDark, textDark, borderDark, refBorder;
+            if (data.category === '社會') {
+                bgLight = 'bg-[#e73421]/10'; bgDark = 'bg-[#e73421]'; textDark = 'text-[#e73421]'; borderDark = 'border-[#e73421]/30'; refBorder = 'border-[#e73421]';
+            } else if (data.category === '經濟') {
+                bgLight = 'bg-[#e95098]/10'; bgDark = 'bg-[#e95098]'; textDark = 'text-[#e95098]'; borderDark = 'border-[#e95098]/30'; refBorder = 'border-[#e95098]';
+            } else {
+                bgLight = 'bg-[#80bf24]/10'; bgDark = 'bg-[#80bf24]'; textDark = 'text-[#80bf24]'; borderDark = 'border-[#80bf24]/30'; refBorder = 'border-[#80bf24]';
+            }
+
+            const isTrueText = data.isTrue ? "真實" : "假";
+            const stampClass = data.isTrue ? "stamp-true" : "stamp-false";
+            const rewardIcon = data.isTrue ? "fa-circle-check text-green-500" : "fa-circle-xmark text-red-500";
+
+            const cardHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl overflow-hidden card-enter border-2 ${borderDark}">
+                    <!-- Card Header -->
+                    <div class="${bgDark} text-white p-4 flex justify-between items-center">
+                        <div class="font-bold text-xl flex items-center">
+                            <i class="fa-solid ${data.icon} mr-2"></i> [${data.category}] 資訊卡
+                        </div>
+                        <div class="bg-white text-slate-800 font-black px-4 py-1 rounded-lg text-lg">
+                            ${data.id}
+                        </div>
+                    </div>
+
+                    <!-- News Content -->
+                    <div class="p-6 md:p-8">
+                        <h2 class="text-2xl md:text-3xl font-black mb-4 ${textDark} leading-tight">${data.title}</h2>
+                        <div class="bg-slate-100 p-5 rounded-xl border border-slate-200 mb-6 relative">
+                            <div class="absolute top-0 left-4 transform -translate-y-1/2 bg-slate-300 text-slate-700 text-xs font-bold px-2 py-1 rounded">新聞內文</div>
+                            <p class="text-slate-700 text-lg md:text-xl leading-relaxed font-medium">
+                                ${data.content}
+                            </p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button id="revealBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 w-full md:w-auto">
+                                <i class="fa-solid fa-gavel mr-2"></i> 判讀新聞真相
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Answer Section (Hidden by default) -->
+                    <div id="answerSection" class="hidden border-t-4 border-dashed border-slate-200 ${bgLight} p-6 md:p-8 relative">
+                        <h3 class="text-center font-bold text-slate-500 mb-4 tracking-widest">====== 判讀結果 ======</h3>
+                        
+                        <div class="flex flex-col items-center mb-6">
+                            <p class="text-xl font-bold mb-2 text-slate-700">這是一則</p>
+                            <div class="stamp ${stampClass} mb-4">${isTrueText}新聞</div>
+                            
+                            <div class="bg-white px-6 py-3 rounded-lg shadow-sm border border-slate-200 flex items-center gap-3 w-full max-w-md mx-auto">
+                                <i class="fa-solid ${rewardIcon} text-2xl"></i>
+                                <div>
+                                    <p class="text-sm text-slate-500 font-bold">判讀正確獎勵</p>
+                                    <p class="text-lg font-black text-slate-800">${data.reward}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real world reference box -->
+                        <div class="mt-6 bg-white border-l-4 ${refBorder} p-5 rounded-r-xl shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-2 flex items-center">
+                                <i class="fa-solid fa-book-open mr-2 ${textDark}"></i> 現實世界參照
+                            </h4>
+                            <p class="text-slate-600 leading-relaxed font-medium">
+                                ${data.reference}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            resultContainer.innerHTML = cardHTML;
+            resultContainer.classList.remove('hidden');
+
+            // Attach event listener to the new button
+            document.getElementById('revealBtn').addEventListener('click', function() {
+                this.classList.add('hidden'); // Hide button
+                const ans = document.getElementById('answerSection');
+                ans.classList.remove('hidden');
+                ans.classList.add('reveal-anim');
+                
+                // Scroll slightly to show answer smoothly on mobile
+                ans.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+
+        // Event Listeners for Search
+        searchBtn.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        
+        // Auto focus input on load
+        window.onload = () => {
+            searchInput.focus();
+        };
+
+    </script>
+</body>
+</html>
